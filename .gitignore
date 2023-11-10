@@ -1,0 +1,13 @@
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.dvi
+data/
+build/
+modelnet10/
+/expriments/dataset/
+/expriments/model/
+/expriments/results/
