@@ -5,7 +5,8 @@
 *.out
 *.toc
 *.dvi
-data/
+__pycache__/
+expriments/data/
 build/
 modelnet10/
 /expriments/dataset/

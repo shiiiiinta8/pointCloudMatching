@@ -1,16 +1,12 @@
-"""
-    Example for training a tracker (PointNet-LK).
-
-    No-noise version.
-"""
-
-import argparse
 import os
 import sys
+import argparse
 import logging
-import numpy
+import open3d as o3d
+from pathlib import Path
+
 import torch
-import torch.utils.data
+import torch.nn as nn
 import torchvision
 
 # addpath('../')
@@ -20,6 +16,7 @@ import ptlk
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
 
+print("cuda available : " ,torch.cuda.is_available())
 
 def options(argv=None):
     parser = argparse.ArgumentParser(description='PointNet-LK')
@@ -33,8 +30,8 @@ def options(argv=None):
                         metavar='PATH', help='path to the categories to be trained') # eg. './sampledata/modelnet40_half1.txt'
 
     # settings for input data
-    parser.add_argument('--dataset-type', default='modelnet', choices=['modelnet', 'shapenet2', 'pointcloud'],
-                        metavar='DATASET', help='dataset type (default: modelnet)')
+    parser.add_argument('--dataset-type', default='pointcloud', choices=['modelnet', 'pointcloud'],
+                        metavar='DATASET', help='dataset type (default: pointcloud)')
     parser.add_argument('--num-points', default=1024, type=int,
                         metavar='N', help='points in point-cloud (default: 1024)')
     parser.add_argument('--mag', default=0.8, type=float,
@@ -88,7 +85,6 @@ def main(args):
     # training
     act = Action(args)
     run(args, trainset, testset, act)
-
 
 def run(args, trainset, testset, action):
     if not torch.cuda.is_available():
@@ -157,7 +153,6 @@ def run(args, trainset, testset, action):
 
 def save_checkpoint(state, filename, suffix):
     torch.save(state, '{}_{}.pth'.format(filename, suffix))
-
 
 class Action:
     def __init__(self, args):
@@ -270,12 +265,39 @@ class Action:
 
         return loss, loss_g
 
+# カスタムヘッドの追加
+custom_head = nn.Sequential(
+    nn.Linear(in_features, out_features),  # カスタムヘッドのアーキテクチャを設計
+    nn.ReLU(),
+    nn.Linear(out_features, num_classes)  # 分類の数に合わせた出力層
+)
 
-class ShapeNet2_transform_coordinate:
-    def __init__(self):
-        pass
-    def __call__(self, mesh):
-        return mesh.clone().rot_x()
+# 新しいモデルを構築
+model = nn.Sequential(
+    base_model,
+    custom_head
+)
+
+learning_rate = 1e-3
+
+# カスタムヘッドのパラメータのみをトレーニング
+optimizer = torch.optim.SGD(custom_head.parameters(), lr=learning_rate)
+criterion = nn.CrossEntropyLoss()
+
+num_epochs = 10
+
+# データセットを使用してモデルをトレーニング
+for epoch in range(num_epochs):
+    for batch_idx, (data, targets) in enumerate(train_loader):
+        # データをモデルに渡す
+        scores = model(data)
+        loss = criterion(scores, targets)
+
+        # バックプロパゲーションとパラメータの更新
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
 
 def get_datasets(args):
 
@@ -302,23 +324,6 @@ def get_datasets(args):
                         ptlk.data.transforms.RandomTransformSE3(args.mag, mag_randomly))
         testset = ptlk.data.datasets.CADset4tracking(testdata,\
                         ptlk.data.transforms.RandomTransformSE3(args.mag, mag_randomly))
-
-    elif args.dataset_type == 'shapenet2':
-        transform = torchvision.transforms.Compose([\
-                ShapeNet2_transform_coordinate(),\
-                ptlk.data.transforms.Mesh2Points(),\
-                ptlk.data.transforms.OnUnitCube(),\
-                ptlk.data.transforms.Resampler(args.num_points),\
-            ])
-
-        dataset = ptlk.data.datasets.ShapeNet2(args.dataset_path, transform=transform, classinfo=cinfo)
-        traindata, testdata = dataset.split(0.8)
-
-        mag_randomly = True
-        trainset = ptlk.data.datasets.CADset4tracking(traindata,\
-                        ptlk.data.transforms.RandomTransformSE3(args.mag, mag_randomly))
-        testset = ptlk.data.datasets.CADset4tracking(testdata,\
-                        ptlk.data.transforms.RandomTransformSE3(args.mag, mag_randomly))
         
     elif args.dataset_type == 'pointcloud':
         transform = torchvision.transforms.Compose([\
@@ -337,7 +342,6 @@ def get_datasets(args):
 
 
     return trainset, testset
-
 
 if __name__ == '__main__':
     ARGS = options()
