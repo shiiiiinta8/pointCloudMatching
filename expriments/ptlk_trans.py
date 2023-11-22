@@ -16,8 +16,6 @@ import ptlk
 LOGGER = logging.getLogger(__name__)
 LOGGER.addHandler(logging.NullHandler())
 
-print("cuda available : " ,torch.cuda.is_available())
-
 def options(argv=None):
     parser = argparse.ArgumentParser(description='PointNet-LK')
 
@@ -264,40 +262,6 @@ class Action:
             loss = loss_g
 
         return loss, loss_g
-
-# カスタムヘッドの追加
-custom_head = nn.Sequential(
-    nn.Linear(in_features, out_features),  # カスタムヘッドのアーキテクチャを設計
-    nn.ReLU(),
-    nn.Linear(out_features, num_classes)  # 分類の数に合わせた出力層
-)
-
-# 新しいモデルを構築
-model = nn.Sequential(
-    base_model,
-    custom_head
-)
-
-learning_rate = 1e-3
-
-# カスタムヘッドのパラメータのみをトレーニング
-optimizer = torch.optim.SGD(custom_head.parameters(), lr=learning_rate)
-criterion = nn.CrossEntropyLoss()
-
-num_epochs = 10
-
-# データセットを使用してモデルをトレーニング
-for epoch in range(num_epochs):
-    for batch_idx, (data, targets) in enumerate(train_loader):
-        # データをモデルに渡す
-        scores = model(data)
-        loss = criterion(scores, targets)
-
-        # バックプロパゲーションとパラメータの更新
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
 
 def get_datasets(args):
 

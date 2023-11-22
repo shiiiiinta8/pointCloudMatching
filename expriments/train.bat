@@ -14,8 +14,8 @@ rem echo %date2%
 rem train PointNet-LK. fine-tune the PointNet feature for classification (the above file).
 python ptlk_trans.py ^
     -o ./results/ex1_pointlk_%date2% ^
-    -i ./dataset/ModelNet40 ^
-    -c ./sampledata/modelnet40_half1.txt ^
+    -i ./dataset/PointCloudSet ^
+    -c ./sampledata/pointcloud.txt ^
     -l ./results/ex1_pointlk_%date2%.log ^
-    --transfer-from results/ex1_classifier_%date2%_feat_best.pth ^
-    --epochs 200
+    --transfer-from ./results/ex1_classifier_1110_feat_best.pth ^
+    --pretrained ./results/ex1_pointlk_1110_model_best.pth
