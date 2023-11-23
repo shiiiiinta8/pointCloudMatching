@@ -2,7 +2,6 @@ import os
 import sys
 import argparse
 import logging
-import open3d as o3d
 from pathlib import Path
 
 import torch
