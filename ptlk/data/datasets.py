@@ -89,7 +89,7 @@ class CADset4tracking_fixed_perturbation(torch.utils.data.Dataset):
             amp = mag
         x = torch.randn(batch_size, 6)
         x = x / x.norm(p=2, dim=1, keepdim=True) * amp
-        return x.np()
+        return x.numpy()
 
     @staticmethod
     def generate_rotations(batch_size, mag, randomly=False):
@@ -101,7 +101,7 @@ class CADset4tracking_fixed_perturbation(torch.utils.data.Dataset):
         w = w / w.norm(p=2, dim=1, keepdim=True) * amp
         v = torch.zeros(batch_size, 3)
         x = torch.cat((w, v), dim=1)
-        return x.np()
+        return x.numpy()
 
     def __init__(self, dataset, perturbation, source_modifier=None, template_modifier=None,
                  fmt_trans=False):
